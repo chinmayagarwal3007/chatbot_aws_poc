@@ -3,24 +3,35 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
 import ssl
-from dotenv import load_dotenv
+import boto3
+import json
 
+def get_db_credentials(secret_name, region_name):
+    # Create a Secrets Manager client
+    client = boto3.client('secretsmanager', region_name=region_name)
 
-# Load environment variables
-dotenv_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
-load_dotenv(dotenv_path)
+    try:
+        get_secret_value_response = client.get_secret_value(SecretId=secret_name)
+        secret = get_secret_value_response['SecretString']
+        return json.loads(secret)
+    except Exception as e:
+        raise RuntimeError(f"Error fetching secret: {e}")
 
-# Get database credentials from environment
-username = os.getenv('DB_USERNAME')
-password = os.getenv('PASSWORD')
-neon_url = os.getenv('NEON_URL')
-database = os.getenv('DATABASE')
+# Usage
+secret_name = "myapp/db_credentials"
+region_name = "us-east-1"  # Change to your region
+creds = get_db_credentials(secret_name, region_name)
 
-if not all([username, password, neon_url, database]):
+username = creds['username']
+password = creds['password']
+aws_url = creds['host']
+database = creds['database']
+
+if not all([username, password, aws_url, database]):
     raise ValueError("Missing one or more environment variables for the database connection.")
 
 # Async database URL (no sslmode in the URL)
-SQLALCHEMY_DATABASE_URL = f"postgresql+asyncpg://{username}:{password}@{neon_url}/{database}"
+SQLALCHEMY_DATABASE_URL = f"postgresql+asyncpg://{username}:{password}@{aws_url}/{database}"
 
 # SSL context for asyncpg
 ssl_context = ssl.create_default_context()
