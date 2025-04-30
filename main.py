@@ -10,7 +10,7 @@ from db import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 from metadata import schema
 
-app = FastAPI()
+
 
 # In-memory chat sessions (only for demo — in production use RDS!)
 session_memory = {}
