@@ -84,10 +84,44 @@ def index_document_in_opensearch(doc_id, text, embedding, source_file_tag):
         # Check Data Access Policy permissions if you get authorization errors
         return None
 
+# Be conservative to be safe.
+MAX_CHUNK_LENGTH_CHARS = 8192
+
+def process_chunk(chunk_text, source_tag, base_filename, chunk_index):
+    """Processes a single chunk: gets embedding and indexes it."""
+    embedding = get_embedding_from_bedrock(chunk_text)
+    # Consider making doc_id generation more robust if needed
+    doc_id = f"{source_tag}_{base_filename}_{chunk_index}"
+    index_document_in_opensearch(doc_id, chunk_text, embedding, source_tag)
+
+def split_and_process_chunk(long_chunk, source_tag, base_filename, chunk_index_prefix):
+    """Further splits a long chunk (e.g., by single newline) and processes sub-chunks."""
+    sub_chunks_processed = 0
+    # Simple secondary split: by single newline. Could use sentence splitter too.
+    sub_chunks = long_chunk.split("\n")
+    for j, sub_chunk in enumerate(sub_chunks):
+        clean_sub_chunk = sub_chunk.strip()
+        if not clean_sub_chunk:
+            continue
+        if len(clean_sub_chunk) > MAX_CHUNK_LENGTH_CHARS:
+            print(f"Warning: Sub-chunk {chunk_index_prefix}.{j} still too long ({len(clean_sub_chunk)} chars), skipping.")
+            continue
+        try:
+            print(f"Processing sub-chunk {chunk_index_prefix}.{j}, length: {len(clean_sub_chunk)} chars")
+            # Use a modified index/ID for sub-chunks
+            process_chunk(clean_sub_chunk, source_tag, base_filename, f"{chunk_index_prefix}.{j}")
+            sub_chunks_processed += 1
+        except Exception as sub_chunk_error:
+            print(f"Skipping sub-chunk {chunk_index_prefix}.{j} due to error: {sub_chunk_error}")
+            continue
+    return sub_chunks_processed
+
+
 def process_file(filepath, source_tag):
-    """Reads a file, splits it into semantic chunks, gets embeddings, and indexes them."""
+    """Reads a file, splits it into semantic chunks, handles oversized chunks, gets embeddings, and indexes them."""
     print(f"\n--- Processing file: {filepath} ---")
     doc_counter = 0
+    base_filename = os.path.basename(filepath) # Get filename for IDs
 
     try:
         with open(filepath, 'r', encoding='utf-8') as f:
@@ -99,24 +133,34 @@ def process_file(filepath, source_tag):
         print(f"An unexpected error occurred while reading {filepath}: {e}")
         return
 
-    # Split on double newlines — good for instruction blocks
+    # Split on double newlines — good for instruction blocks/paragraphs
     chunks = content.strip().split("\n\n")
 
     for i, chunk in enumerate(chunks):
         clean_chunk = chunk.strip()
         if not clean_chunk:
             continue
-        try:
-            print(f"Processing chunk {i}, length: {len(clean_chunk)} characters")
-            embedding = get_embedding_from_bedrock(clean_chunk)
-            doc_id = f"{source_tag}_{os.path.basename(filepath)}_{i}"
-            index_document_in_opensearch(doc_id, clean_chunk, embedding, source_tag)
-            doc_counter += 1
-        except Exception as inner_e:
-            print(f"Skipping chunk {i} due to error: {inner_e}")
-            continue
 
-    print(f"--- Finished processing {filepath}. Indexed {doc_counter} documents. ---")
+        if len(clean_chunk) <= MAX_CHUNK_LENGTH_CHARS:
+            # Process chunk directly if within limits
+            try:
+                print(f"Processing chunk {i}, length: {len(clean_chunk)} characters")
+                process_chunk(clean_chunk, source_tag, base_filename, str(i))
+                doc_counter += 1
+            except Exception as inner_e:
+                print(f"Skipping chunk {i} due to error: {inner_e}")
+                continue
+        else:
+            # Chunk is too long, try splitting it further
+            print(f"Warning: Chunk {i} is too long ({len(clean_chunk)} chars). Attempting to split further...")
+            sub_chunks_indexed = split_and_process_chunk(clean_chunk, source_tag, base_filename, str(i))
+            doc_counter += sub_chunks_indexed
+            if sub_chunks_indexed == 0:
+                 print(f"Warning: No processable sub-chunks found for oversized chunk {i}.")
+
+
+    print(f"--- Finished processing {filepath}. Indexed approximately {doc_counter} documents/sub-documents. ---")
+
 
 
 # --- Main Execution ---
