@@ -7,7 +7,7 @@ from opensearchpy import OpenSearch, RequestsHttpConnection, AWSV4SignerAuth
 AWS_REGION = "us-east-1"  # Replace with your AWS region
 BEDROCK_MODEL_ID = "amazon.titan-embed-text-v1"
 # IMPORTANT: Use the Collection Endpoint URL from Phase 2
-OPENSEARCH_COLLECTION_ENDPOINT = "https://jumud3coizfqh7wcw2eh.us-east-1.aoss.amazonaws.com" # Replace with your Collection Endpoint URL
+OPENSEARCH_COLLECTION_ENDPOINT = "jumud3coizfqh7wcw2eh.us-east-1.aoss.amazonaws.com" # Replace with your Collection Endpoint URL
 OPENSEARCH_INDEX_NAME = "instruction4" # The index name you used in the PUT mapping command
 
 # --- Authentication ---
@@ -64,25 +64,28 @@ def get_embedding_from_bedrock(text_input):
         raise
 
 def index_document_in_opensearch(doc_id, text, embedding, source_file_tag):
-    """Indexes a document (text + embedding) into OpenSearch Serverless Collection."""
+    """Indexes a document (text + embedding) into OpenSearch Serverless Collection, letting OpenSearch generate the ID."""
     document = {
         'text_embedding': embedding,
         'text': text,
         'source_file': source_file_tag
+        # You could optionally include your intended doc_id as another field if needed for reference
+        # 'original_doc_id': doc_id
     }
+    generated_id = None # Variable to store the generated ID if needed later
     try:
         response = opensearch_client.index(
             index=OPENSEARCH_INDEX_NAME,
             body=document,
-            id=doc_id,
-            refresh='wait_for' # Use 'wait_for' for testing, remove for bulk indexing performance
+            # id=doc_id,  # <-- REMOVE OR COMMENT OUT THIS LINE
+            #refresh='wait_for' # Make immediately searchable (remove for bulk load performance)
         )
-        print(f"Indexed document ID: {doc_id}, Source: {source_file_tag}, Response: {response['result']}")
+        generated_id = response.get('_id')
         return response
     except Exception as e:
-        print(f"Error indexing document ID {doc_id} into OpenSearch: {e}")
-        # Check Data Access Policy permissions if you get authorization errors
-        return None
+        # Log the specific exception and the original intended ID for debugging
+        # Re-raise the exception or handle it as appropriate
+        raise
 
 # Be conservative to be safe.
 MAX_CHUNK_LENGTH_CHARS = 8192
