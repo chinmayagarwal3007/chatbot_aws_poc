@@ -222,7 +222,7 @@ async def search_endpoint(session_id: int, request: SearchRequest, db: AsyncSess
     session_memory_sql[session_id] = result["chat_history"]
 
     sql_query = result["bot_response"]
-    result = db.execute(sql_query)
+    result = await db.execute(sql_query)
 
     result_string = ""
 

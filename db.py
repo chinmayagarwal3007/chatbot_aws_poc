@@ -18,20 +18,22 @@ def get_db_credentials(secret_name, region_name):
         raise RuntimeError(f"Error fetching secret: {e}")
 
 # Usage
-secret_name = "myapp/db_credentials"
+
+secret_name = "rds!db-61356bef-a57d-4113-804b-1a56b3722416"
 region_name = "us-east-1"  # Change to your region
 creds = get_db_credentials(secret_name, region_name)
 
 username = creds['username']
 password = creds['password']
-aws_url = creds['host']
-database = creds['database']
+aws_url = "database-power-assist.cevefiaq0e14.us-east-1.rds.amazonaws.com"
+database = "sampleDB"
+port = "5432"
 
 if not all([username, password, aws_url, database]):
     raise ValueError("Missing one or more environment variables for the database connection.")
 
 # Async database URL (no sslmode in the URL)
-SQLALCHEMY_DATABASE_URL = f"postgresql+asyncpg://{username}:{password}@{aws_url}/{database}"
+SQLALCHEMY_DATABASE_URL = f"postgresql+asyncpg://{username}:{password}@{aws_url}:{port}/{database}"
 
 # SSL context for asyncpg
 ssl_context = ssl.create_default_context()

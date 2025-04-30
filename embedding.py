@@ -7,8 +7,8 @@ from opensearchpy import OpenSearch, RequestsHttpConnection, AWSV4SignerAuth
 AWS_REGION = "us-east-1"  # Replace with your AWS region
 BEDROCK_MODEL_ID = "amazon.titan-embed-text-v1"
 # IMPORTANT: Use the Collection Endpoint URL from Phase 2
-OPENSEARCH_COLLECTION_ENDPOINT = "xxxxxxxxxxxx.us-east-1.aoss.amazonaws.com" # Replace with your Collection Endpoint URL
-OPENSEARCH_INDEX_NAME = "vector-index" # The index name you used in the PUT mapping command
+OPENSEARCH_COLLECTION_ENDPOINT = "https://jumud3coizfqh7wcw2eh.us-east-1.aoss.amazonaws.com" # Replace with your Collection Endpoint URL
+OPENSEARCH_INDEX_NAME = "instruction4" # The index name you used in the PUT mapping command
 
 # --- Authentication ---
 # OpenSearch Serverless uses IAM authentication defined by Data Access Policies.
