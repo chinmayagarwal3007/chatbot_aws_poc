@@ -13,7 +13,8 @@ from metadata import schema
 
 
 # In-memory chat sessions (only for demo — in production use RDS!)
-session_memory = {}
+session_memory_sql = {}
+session_memory_final = {}
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -176,7 +177,7 @@ def search_documents_in_opensearch(query_embedding: list[float], k: int, source_
 @app.post("/chat/{session_id}", response_model=SearchResponse)
 async def search_endpoint(session_id: int, request: SearchRequest, db: AsyncSession = Depends(get_db)):
     logger.info(f"Received search request: query='{request.query[:50]}...', top_k={request.top_k}, filter='{request.filter_source}'")
-    memory = session_memory.get(session_id, [])
+    
     
     if not request.query.strip():
         raise HTTPException(status_code=400, detail="Query cannot be empty.")
@@ -211,12 +212,14 @@ async def search_endpoint(session_id: int, request: SearchRequest, db: AsyncSess
 
     msg = f"[Domain]: {msg_dict['domain']}\n[Schema]: {msg_dict['schema']}\n[Instruction]: {msg_dict['instruction']}\n[Query]: {msg_dict['query']}"
 
+    memory_sql = session_memory_sql.get(session_id, [])
+    memory_final = session_memory_final.get(session_id, [])
     result = chatbot.invoke({
         "user_message": msg,
-        "chat_history": memory
+        "chat_history": memory_sql
     })
 
-    session_memory[session_id] = result["chat_history"]
+    session_memory_sql[session_id] = result["chat_history"]
 
     sql_query = result["bot_response"]
     result = db.execute(sql_query)
@@ -228,9 +231,9 @@ async def search_endpoint(session_id: int, request: SearchRequest, db: AsyncSess
 
     final_result = chatbot.invoke({
         "user_message": result_string,
-        "chat_history": memory
+        "chat_history": memory_final
     })
 
+    session_memory_final[session_id] = result["chat_history"]
 
-
-    return {"response": result["bot_response"]}
+    return {"response": final_result["bot_response"]}
