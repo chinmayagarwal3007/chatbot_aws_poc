@@ -224,7 +224,7 @@ async def search_endpoint(session_id: int, request: SearchRequest, db: AsyncSess
     result_string = ""
 
     for row in result:
-        result_string = result_string + "/n" + str(dict(row)) 
+        result_string = result_string + "\n" + str(dict(row)) 
 
     final_result = chatbot.invoke({
         "user_message": result_string,
