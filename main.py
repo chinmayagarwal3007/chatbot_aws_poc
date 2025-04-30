@@ -8,6 +8,7 @@ from models import SearchRequest, SearchResponse, SearchResultItem
 from chatbot_graph_sql_query import chatbot
 from db import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
+from metadata import schema
 
 app = FastAPI()
 
@@ -204,7 +205,7 @@ async def search_endpoint(session_id: int, request: SearchRequest, db: AsyncSess
     msg_dict = {
         "domain": domain_knowledge_content,
         "instruction": instruction_content,
-        "schema": "dummy",
+        "schema": str(schema['table_schema_details']),
         "query": request.query
     }
 
