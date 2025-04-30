@@ -1,9 +1,10 @@
+import json
 import logging
 import os
 import boto3
 from fastapi import FastAPI, Depends, HTTPException
 from opensearchpy import AWSV4SignerAuth, OpenSearch, RequestsHttpConnection
-from models import ChatRequest, SearchRequest, SearchResponse, SearchResultItem
+from models import SearchRequest, SearchResponse, SearchResultItem
 from chatbot_graph_sql_query import chatbot
 from db import get_db
 from sqlalchemy.ext.asyncio import AsyncSession

@@ -1,7 +1,5 @@
 from pydantic import BaseModel, Field
 
-class ChatRequest(BaseModel):
-    message: str
 
 # Pydantic model for the request body
 class SearchRequest(BaseModel):
