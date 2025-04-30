@@ -1,6 +1,5 @@
 import json
 import logging
-import os
 import boto3
 from fastapi import FastAPI, Depends, HTTPException
 from opensearchpy import AWSV4SignerAuth, OpenSearch, RequestsHttpConnection
@@ -20,10 +19,13 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 # Load configuration from environment variables
-AWS_REGION = os.getenv("AWS_REGION")
-BEDROCK_MODEL_ID = os.getenv("BEDROCK_MODEL_ID")
-OPENSEARCH_COLLECTION_ENDPOINT = os.getenv("OPENSEARCH_COLLECTION_ENDPOINT")
-OPENSEARCH_INDEX_NAME = os.getenv("OPENSEARCH_INDEX_NAME")
+
+AWS_REGION = "us-east-1"  # Replace with your AWS region
+BEDROCK_MODEL_ID = "amazon.titan-embed-text-v1"
+# IMPORTANT: Use the Collection Endpoint URL from Phase 2
+OPENSEARCH_COLLECTION_ENDPOINT = "jumud3coizfqh7wcw2eh.us-east-1.aoss.amazonaws.com" # Replace with your Collection Endpoint URL
+OPENSEARCH_INDEX_NAME = "instruction4" # The index name you used in the PUT mapping command
+
 
 # Basic validation for required environment variables
 if not all([AWS_REGION, BEDROCK_MODEL_ID, OPENSEARCH_COLLECTION_ENDPOINT, OPENSEARCH_INDEX_NAME]):
