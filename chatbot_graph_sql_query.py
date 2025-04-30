@@ -2,7 +2,7 @@ from langgraph.graph import StateGraph, END
 from langchain.prompts import PromptTemplate
 from langchain.schema import messages_from_dict, messages_to_dict
 from langchain.chains import LLMChain
-from .config import llm
+from config import llm
 
 # Chatbot State
 class ChatState(dict):
@@ -25,7 +25,7 @@ prompt = PromptTemplate(
 )
 
 # Simple LangChain QA Chain
-qa_chain = LLMChain(llm=llm, prompt=prompt)
+qa_chain = llm | prompt
 
 # Graph Nodes
 def start_node(state):
@@ -45,7 +45,7 @@ def answer_node(state):
         history_text += f"{role}: {message['content']}\n"
 
     # Run QA
-    response = qa_chain.run({
+    response = qa_chain.invoke({
         "chat_history": history_text,
         "user_message": user_message
     })
